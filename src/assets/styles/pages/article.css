@@ -64,7 +64,22 @@
   margin: 10px 10px;
 }
 
+@media screen and (max-width: 800px) {
+  .article-container {
+    padding: 30px 30px;
+    margin: 0 auto;
+  }
+
+  .article-description {
+    width: 100% !important;
+  }
+}
+
 @media screen and (max-width: 600px) {
+  .article-container {
+    padding: 30px 30px;
+  }
+
   .article-description {
     width: 100% !important;
   }

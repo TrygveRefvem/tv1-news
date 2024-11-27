@@ -116,9 +116,11 @@
 
 @media screen and (max-width: 700px) {
   .app-header {
-    flex-direction: column;
-    flex-wrap: wrap;
-    gap: 10px;
+    /* flex-direction: column; */
+    /* flex-wrap: wrap; */
+    gap: 15px;
+    /* justify-content: center; */
+    text-align: center;
   }
 
   .app-header nav {
