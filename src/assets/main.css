@@ -8,10 +8,10 @@
 @import './styles/base/layout.css';
 
 /* Pages */
-/* @import './styles/pages/news-full-page.css'; */
+@import './styles/pages/article.css';
 
 /* Components */
-/* @import './styles/cmps/app-header.css'; */
+@import './styles/cmps/app-header.css';
 @import './styles/cmps/news-list.css';
 @import './styles/cmps/news-preview.css';
-/* @import './styles/cmps/footer.css'; */
+@import './styles/cmps/footer.css';
