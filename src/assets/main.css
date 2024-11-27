@@ -1,0 +1,17 @@
+/* Setup */
+@import './styles/setup/vars.css';
+@import './styles//setup/typography.css';
+
+/* Base */
+@import './styles//base/base.css';
+@import './styles/base/helpers.css';
+@import './styles/base/layout.css';
+
+/* Pages */
+/* @import './styles/pages/news-full-page.css'; */
+
+/* Components */
+/* @import './styles/cmps/app-header.css'; */
+@import './styles/cmps/news-list.css';
+@import './styles/cmps/news-preview.css';
+/* @import './styles/cmps/footer.css'; */
