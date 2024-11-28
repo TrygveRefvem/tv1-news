@@ -5,8 +5,9 @@ export function NewsPreview({ article }) {
   const Navigate = useNavigate();
 
   function ReadMore() {
-    Navigate(`/${article.id}`);
+    Navigate(`/${article.id}`, { state: article });
   }
+
   return (
     <>
       <div className="news-preview">
@@ -17,7 +18,7 @@ export function NewsPreview({ article }) {
           <p className="source">{article.source}</p>
         </div>
         <div className="news-preview-img">
-          <img className="news-img" src={article.img} alt={article.title} />
+          <img className="news-img" src={article.image} alt={article.title} />
           <button onClick={ReadMore} className="read-more-btn">
             Read More
           </button>
