@@ -66,6 +66,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.2s ease;
+  width: 100%;
 }
 
 .read-more-btn:hover {
