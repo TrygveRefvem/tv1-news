@@ -1,10 +1,13 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-export function NewsDescription({ news }) {
-  const { newsId } = useParams();
+export function NewsDescription() {
+  const location = useLocation();
   const navigate = useNavigate();
+  const article = location.state;
 
-  const article = news.find((item) => item.id === parseInt(newsId));
+  if (!article) {
+    return <p>News not found</p>;
+  }
 
   function GoBack() {
     navigate(-1);
@@ -22,7 +25,7 @@ export function NewsDescription({ news }) {
           {article.author}
         </p>
         <p className="article-description">{article.description}</p>
-        <img className="article-img" src={article.img} alt="" />
+        <img className="article-img" src={article.image} alt="" />
         <p className="article-source">
           <span>Source:</span> {article.source}
         </p>
