@@ -1,5 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-const genAI = new GoogleGenerativeAI('<you gemini key here>');
+const genAI = new GoogleGenerativeAI(
+  import.meta.env.VITE_GOOGLE_GENERATIVE_AI_KEY
+);
+
+console.log(genAI);
+
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 export async function processTitleMood(titles) {
