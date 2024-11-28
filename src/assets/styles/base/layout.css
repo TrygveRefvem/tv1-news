@@ -1,17 +1,13 @@
 .main-layout {
-  margin: 0 auto;
-  margin-bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
+
 .main-layout > * {
   grid-column: 2;
 }
 
 .main-layout .full {
   grid-column: 1/-1;
-}
-
-.container {
-  max-width: 800px;
-  padding: 1em;
-  margin: auto;
 }

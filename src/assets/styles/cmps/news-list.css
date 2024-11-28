@@ -1,4 +1,6 @@
 .news-list {
   height: 100vh;
   margin: 10px 20px;
+  flex: 1;
+  margin-bottom: 150px;
 }
