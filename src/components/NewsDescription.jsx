@@ -87,8 +87,6 @@ export function NewsDescription() {
     return <p>News not found</p>;
   }
 
-  // const formattedDate = new Date(article.published_date).toDateString();
-
   return (
     <>
       <button onClick={() => navigate(-1)} className="back-to-news">
@@ -109,11 +107,7 @@ export function NewsDescription() {
           }
           alt={article.title}
         />
-        {/* <p className="Data">{formattedDate}</p> */}
-        <p className="article-source">
-          <span>Source: </span>
-          {article.source}
-        </p>
+        <p>{article.publish_date}</p>
       </div>
     </>
   );
