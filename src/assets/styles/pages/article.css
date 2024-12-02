@@ -59,7 +59,8 @@
 }
 
 /*back to home page -btn*/
-.back-to-news {
+.back-to-news,
+.make-calm-btn {
   background-color: var(--mainRed);
   color: white;
   border: none;
