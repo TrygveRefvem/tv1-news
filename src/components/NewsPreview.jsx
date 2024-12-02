@@ -45,3 +45,5 @@ export function NewsPreview({ article }) {
     </div>
   );
 }
+
+//add new env file
