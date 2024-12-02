@@ -70,8 +70,6 @@ Ensure the JSON is valid and parsable.
     return JSON.parse(answer);
   } catch (error) {
     console.error('Error in changeMood:', error);
-    // eslint-disable-next-line no-undef
-    console.error('Response received:', answer);
     return { title: data.title, description: data.description };
   }
 }
