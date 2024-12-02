@@ -77,13 +77,12 @@ export async function getNews() {
 
   console.log('Fetching fresh data from API...');
   const params = {
-    text: 'earth quake', // Specify the topic
-    language: 'en', // Specify language
-    'earliest-publish-date': '2024-11-10', // Specify publish date range
-    number: 10, // Limit results
+    text: 'earth quake',
+    language: 'en',
+    'earliest-publish-date': '2024-11-10',
+    number: 10,
   };
 
-  // Build query string
   const urlParams = new URLSearchParams(params).toString();
 
   try {
@@ -105,17 +104,15 @@ export async function getNews() {
 
     const data = await response.json();
 
-    // Check if the response includes expected data
     if (!data.news || !Array.isArray(data.news)) {
       throw new Error('Unexpected API response format.');
     }
 
     const newsWithIds = data.news.map((article, index) => ({
       ...article,
-      id: `${index}-${article.title?.slice(0, 10)}`, // Generate unique IDs
+      id: `${index}-${article.title?.slice(0, 10)}`,
     }));
 
-    // Cache the data
     localStorage.setItem(CACHE_KEY, JSON.stringify(newsWithIds));
     localStorage.setItem(
       CACHE_EXPIRY_KEY,
