@@ -1,36 +1,3 @@
-// import { useEffect, useState } from 'react';
-// import { NewsPreview } from './NewsPreview';
-// import { getNews } from '../service/getNews.js';
-
-// export function NewsList() {
-//   const [news, setNews] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     getNews()
-//       .then((data) => {
-//         setNews(data);
-//         setLoading(false);
-//       })
-//       .catch((error) => {
-//         console.error('Error fetching news:', error);
-//         setLoading(false);
-//       });
-//   }, []);
-
-//   if (loading) {
-//     return <div className="loader"></div>;
-//   }
-
-//   return (
-//     <div className="news-list">
-//       {news.map((article) => (
-//         <NewsPreview key={article.id} article={article} />
-//       ))}
-//     </div>
-//   );
-// }
-
 import { useEffect, useState } from 'react';
 import { NewsPreview } from './NewsPreview';
 import { getNews } from '../service/getNews.js';
