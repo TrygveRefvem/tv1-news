@@ -94,9 +94,9 @@ app.post('/api/mood', async (req, res) => {
 
 app.get('/api/news', async (req, res) => {
   const apiKey = process.env.VITE_API_KEY;
-  const url = `https://api.worldnewsapi.com/search-news?api-key=${apiKey}&text=tesla.`;
+  const url = `https://api.worldnewsapi.com/search-news?api-key=${apiKey}&text=sport.`;
   const params = {
-    text: 'earth quake',
+    text: 'sport',
     language: 'en',
     'earliest-publish-date': '2024-11-10',
     number: 10,
