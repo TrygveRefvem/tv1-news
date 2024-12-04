@@ -3,6 +3,12 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { RootLayout } from './components/RootLayout.jsx';
 import { NewsDescription } from './components/NewsDescription.jsx';
 import { NewsList } from './components/NewsList.jsx';
+// import {
+//   SignedIn,
+//   SignedOut,
+//   SignInButton,
+//   UserButton,
+// } from '@clerk/clerk-react';
 
 function App() {
   const router = createBrowserRouter([
