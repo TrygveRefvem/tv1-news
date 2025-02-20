@@ -15,24 +15,14 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.resolve('dist')));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve('dist', 'index.html'));
-  });
-} else {
-  const corsOptions = {
-    origin: [
-      'http://127.0.0.1:4040',
-      'http://localhost:4040',
-      'http://127.0.0.1:5173',
-      'http://localhost:5173',
-    ],
-    credentials: true,
-  };
-  app.use(cors(corsOptions));
-}
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://tv1.no', 'https://tv1-news.azurestaticapps.net']
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // Rate limiting setup
 const requestQueue = [];
@@ -144,6 +134,11 @@ app.get('/api/news', async (req, res) => {
     console.error('Error in /api/news:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 const port = process.env.PORT || 4040;
