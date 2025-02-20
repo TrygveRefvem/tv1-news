@@ -1,6 +1,6 @@
 export async function processTitleMood(titles) {
   try {
-    const response = await fetch('http://localhost:4040/api/mood', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4040'}/api/mood`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titles }), // Send titles to backend
@@ -20,7 +20,7 @@ export async function processTitleMood(titles) {
 
 export async function changeMood(data) {
   try {
-    const response = await fetch('http://localhost:4040/api/mood', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4040'}/api/mood`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data), // Send title and description to backend
