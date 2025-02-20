@@ -34,54 +34,73 @@ if (process.env.NODE_ENV === 'production') {
   app.use(cors(corsOptions));
 }
 
-// Create
+// Rate limiting setup
+const requestQueue = [];
+const processInterval = 1000; // 1 second between requests
+let isProcessing = false;
+
+async function processQueue() {
+  if (isProcessing || requestQueue.length === 0) return;
+  
+  isProcessing = true;
+  const { resolve, reject, prompt } = requestQueue.shift();
+  
+  try {
+    const response = await model.generateContent(prompt);
+    const result = await response.response.text();
+    resolve(result);
+  } catch (error) {
+    reject(error);
+  } finally {
+    isProcessing = false;
+    setTimeout(processQueue, processInterval);
+  }
+}
 
 const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+async function queueRequest(prompt) {
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ resolve, reject, prompt });
+    processQueue();
+  });
+}
 
 app.post('/api/mood', async (req, res) => {
   const { titles, title, description } = req.body;
 
   try {
     if (titles) {
-      const prompt = `For each sentence of the following sentences, 
-        give a score based on sentiment analysis, ranging from 0 to 10,
-        0 being the most friendly, supportive and empathetic, while 10
-        is the most aggressive and charged. Return only a list of numbers,
-        without any further explanations. The sentences are: ${JSON.stringify(
-          titles
-        )}`;
+      const prompt = `For each of the following news headlines, analyze the political stance and return a score from -10 to +10, where:
+        -10 indicates strongly pro-Russia/pro-Trump stance
+        0 indicates neutral/balanced reporting
+        +10 indicates strongly pro-Ukraine/anti-Trump stance
+        
+        Return only a list of numbers, without any explanations. The headlines are: ${JSON.stringify(titles)}`;
 
-      const response = await model.generateContent(prompt);
-      const result = await response.response.text();
+      const result = await queueRequest(prompt);
       const scores = JSON.parse(result);
-
       return res.json({ scores });
     }
 
     if (title && description) {
-      const prompt = `I will give you a title and a news story. You need to 
-        make them both calmer, more empathetic, and more positive without losing
-        any of the important existing facts.
+      const prompt = `Analyze this news article and make it more balanced in its reporting while maintaining the key facts:
 
         Title: "${title}"
-
         Description: "${description}"
 
         Return the new value as a **plain JSON** object with the format:
         {
-          "title": "<new updated title here>",
-          "description": "<new updated description here>"
+          "title": "<rewritten balanced title here>",
+          "description": "<rewritten balanced description here>"
         }
 
         Return ONLY this JSON object, without any additional text or explanations.`;
 
-      const response = await model.generateContent(prompt);
-      let answer = await response.response.text();
-
-      answer = answer.replace(/```json|```/g, '').trim();
+      const result = await queueRequest(prompt);
+      const answer = result.replace(/```json|```/g, '').trim();
       const updatedArticle = JSON.parse(answer);
-
       return res.json(updatedArticle);
     }
 
@@ -94,22 +113,19 @@ app.post('/api/mood', async (req, res) => {
 
 app.get('/api/news', async (req, res) => {
   const apiKey = process.env.VITE_API_KEY;
-  const url = `https://api.worldnewsapi.com/search-news?api-key=${apiKey}&text=sport.`;
   const params = {
-    text: 'sport',
+    'api-key': apiKey,
+    text: 'Ukraine Trump NATO geopolitics war',
     language: 'en',
-    'earliest-publish-date': '2024-11-10',
-    number: 10,
+    'earliest-publish-date': new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    number: 20,
+    sort: 'publish-time',
+    'sort-direction': 'DESC'
   };
 
   try {
     const urlParams = new URLSearchParams(params).toString();
-    const response = await fetch(`${url}?${urlParams}`, {
-      method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-      },
-    });
+    const response = await fetch(`https://api.worldnewsapi.com/search-news?${urlParams}`);
 
     if (!response.ok) {
       const errorDetails = await response.json();

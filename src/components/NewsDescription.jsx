@@ -8,8 +8,26 @@ export function NewsDescription() {
   const location = useLocation();
   const navigate = useNavigate();
   const [article, setArticle] = useState(location.state);
-  const [mood, setMood] = useState(5);
   const [loading, setLoading] = useState(false);
+
+  const decodeHtml = (html) => {
+    if (!html) return '';
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value.replace(/\[&#8230;\]/g, '...').trim();
+  };
+
+  const formatDate = (dateString) => {
+    const options = { 
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
 
   useEffect(() => {
     if (!article) {
@@ -21,7 +39,7 @@ export function NewsDescription() {
   }, [article, id]);
 
   if (!article) {
-    return <p>News not found</p>;
+    return <div className="article-container"><p>Article not found</p></div>;
   }
 
   const handleMoodChange = async () => {
@@ -29,15 +47,13 @@ export function NewsDescription() {
     try {
       const updatedArticle = await changeMood({
         title: article.title,
-        description:
-          article.text || article.summary || 'No description available',
+        description: article.text || article.summary || 'No description available',
       });
       setArticle((prevArticle) => ({
         ...prevArticle,
         title: updatedArticle.title,
         text: updatedArticle.description || 'No description available',
       }));
-      console.log('updatedArticle', updatedArticle);
     } catch (error) {
       console.error('Error updating mood:', error);
     } finally {
@@ -46,47 +62,51 @@ export function NewsDescription() {
   };
 
   return (
-    <>
+    <div className="article-page">
       <button onClick={() => navigate(-1)} className="back-to-news">
-        Back to News
+        ← Back to News
       </button>
-      <div className="article-container">
-        <h1 className="article-title">{article.title}</h1>
-        <p className="article-author">
-          <span>Author: </span>
-          {article.authors?.join(', ') || 'Unknown'}
-        </p>
-        <p className="article-description">{article.text}</p>
-        <img
-          className="article-img"
-          src={
-            article.image ||
-            'https://plus.unsplash.com/premium_photo-1688561384438-bfa9273e2c00?q=80&w=1470&auto=format&fit=crop'
-          }
-          alt={article.title}
-        />
-        <p>{article.publish_date}</p>
-        <div className="mood-slider">
-          <label className="label-mood-slider" htmlFor="mood">
-            Mood: {mood}
-          </label>
-          <input
-            id="mood"
-            type="range"
-            min="1"
-            max="10"
-            value={mood !== null ? mood : 5}
-            onChange={(e) => setMood(Number(e.target.value))}
-          />
+      <article className="article-container">
+        <header className="article-header">
+          <h1 className="article-title">{decodeHtml(article.title)}</h1>
+          <div className="article-meta">
+            <p className="article-author">
+              <span>Author: </span>
+              {article.authors?.join(', ') || 'Unknown'}
+            </p>
+            <p className="article-date">
+              {formatDate(article.publish_date)}
+            </p>
+          </div>
+        </header>
+        
+        <div className="article-content">
+          <div className="article-text">
+            {decodeHtml(article.text || article.summary)}
+          </div>
+          
+          <figure className="article-image">
+            <img
+              src={
+                article.image ||
+                'https://plus.unsplash.com/premium_photo-1688561384438-bfa9273e2c00?q=80&w=1470&auto=format&fit=crop'
+              }
+              alt={decodeHtml(article.title)}
+              className="article-img"
+            />
+          </figure>
         </div>
-        <button
-          onClick={handleMoodChange}
-          className="update-article-btn"
-          disabled={loading}
-        >
-          {loading ? 'Updating...' : 'Update Article Mood'}
-        </button>
-      </div>
-    </>
+
+        <div className="article-actions">
+          <button
+            onClick={handleMoodChange}
+            className="update-article-btn"
+            disabled={loading}
+          >
+            {loading ? 'Updating...' : 'Balance Article'}
+          </button>
+        </div>
+      </article>
+    </div>
   );
 }

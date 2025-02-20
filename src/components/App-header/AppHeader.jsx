@@ -5,11 +5,12 @@ import {
   SignInButton,
   UserButton,
 } from '@clerk/clerk-react';
+
 export function AppHeader() {
   return (
     <header className="app-header">
-      <NavLink to="/">
-        <img className="logo" src="/logo.png" alt="logo" />
+      <NavLink to="/" className="site-title">
+        Global News
       </NavLink>
       <nav>
         <ul>
