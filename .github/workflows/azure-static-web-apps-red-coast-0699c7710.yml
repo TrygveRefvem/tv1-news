@@ -34,7 +34,7 @@ jobs:
           echo "VITE_WORLD_NEWS_API_KEY=${{ secrets.VITE_WORLD_NEWS_API_KEY }}" >> .env.production
           echo "VITE_API_KEY=${{ secrets.VITE_API_KEY }}" >> .env.production
           echo "VITE_GOOGLE_GENERATIVE_AI_KEY=${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}" >> .env.production
-          echo "VITE_API_URL=https://tv1-news-api-anbegpdkhmezczc0.northeurope-01.azurewebsites.net" >> .env.production
+          echo "VITE_API_URL=/api" >> .env.production
         
       - name: Build
         run: npm run build
@@ -43,7 +43,7 @@ jobs:
           VITE_WORLD_NEWS_API_KEY: ${{ secrets.VITE_WORLD_NEWS_API_KEY }}
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_GOOGLE_GENERATIVE_AI_KEY: ${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}
-          VITE_API_URL: https://tv1-news-api-anbegpdkhmezczc0.northeurope-01.azurewebsites.net
+          VITE_API_URL: /api
           
       - name: Build And Deploy
         id: builddeploy
@@ -53,14 +53,14 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/"
-          api_location: ""
+          api_location: "server"
           output_location: "dist"
         env:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
           VITE_WORLD_NEWS_API_KEY: ${{ secrets.VITE_WORLD_NEWS_API_KEY }}
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_GOOGLE_GENERATIVE_AI_KEY: ${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}
-          VITE_API_URL: https://tv1-news-api-anbegpdkhmezczc0.northeurope-01.azurewebsites.net
+          VITE_API_URL: /api
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
