@@ -16,7 +16,14 @@ app.use(cookieParser());
 app.use(express.json());
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.resolve('dist')));
+  const corsOptions = {
+    origin: [
+      'https://tv1.no',
+      'https://*.tv1.no'
+    ],
+    credentials: true
+  };
+  app.use(cors(corsOptions));
 
   app.get('*', (req, res) => {
     res.sendFile(path.resolve('dist', 'index.html'));
