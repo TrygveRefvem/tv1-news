@@ -18,7 +18,7 @@ app.use(express.json());
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://tv1.no', 'https://tv1-news.azurestaticapps.net']
+    ? ['https://red-coast-0699c7710.4.azurestaticapps.net']
     : ['http://localhost:5173', 'http://127.0.0.1:5173'],
   credentials: true,
 };
@@ -144,4 +144,6 @@ app.get('/api/health', (req, res) => {
 const port = process.env.PORT || 4040;
 server.listen(port, () => {
   console.log('Server is running on port:', port);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('CORS origins:', corsOptions.origin);
 });

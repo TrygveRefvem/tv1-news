@@ -17,6 +17,9 @@
   ],
   "globalHeaders": {
     "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.azurestaticapps.net https://*.clerk.accounts.dev https://api.worldnewsapi.com https://generativelanguage.googleapis.com",
+    "Access-Control-Allow-Origin": "https://red-coast-0699c7710.4.azurestaticapps.net",
+    "Access-Control-Allow-Methods": "GET, POST",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "cache-control": "no-cache",
     "X-Content-Type-Options": "nosniff"
   },
