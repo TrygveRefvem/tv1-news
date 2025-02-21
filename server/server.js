@@ -7,13 +7,23 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Prosess feilhåndtering
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
 // Express App Config
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // CORS configuration
 const corsOptions = {
@@ -28,6 +38,20 @@ app.use(cors(corsOptions));
 const requestQueue = [];
 const processInterval = 1000; // 1 second between requests
 let isProcessing = false;
+const MAX_QUEUE_SIZE = 100;
+
+// Minnebruk overvåkning
+const checkMemoryUsage = () => {
+  const used = process.memoryUsage();
+  console.log({
+    rss: `${Math.round(used.rss / 1024 / 1024)}MB`,
+    heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)}MB`,
+    heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)}MB`,
+    external: `${Math.round(used.external / 1024 / 1024)}MB`,
+  });
+};
+
+setInterval(checkMemoryUsage, 30000);
 
 async function processQueue() {
   if (isProcessing || requestQueue.length === 0) return;
@@ -40,6 +64,7 @@ async function processQueue() {
     const result = await response.response.text();
     resolve(result);
   } catch (error) {
+    console.error('Error in processQueue:', error);
     reject(error);
   } finally {
     isProcessing = false;
@@ -47,10 +72,23 @@ async function processQueue() {
   }
 }
 
+// Sjekk om nødvendige miljøvariabler er satt
+const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
 const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 async function queueRequest(prompt) {
+  if (requestQueue.length >= MAX_QUEUE_SIZE) {
+    throw new Error('Request queue is full');
+  }
+  
   return new Promise((resolve, reject) => {
     requestQueue.push({ resolve, reject, prompt });
     processQueue();
@@ -136,14 +174,56 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Forbedret helsesjekk endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  try {
+    const healthStatus = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      queueSize: requestQueue.length,
+      environment: process.env.NODE_ENV,
+      version: process.version
+    };
+    
+    // Sjekk om vi kan koble til World News API
+    fetch('https://api.worldnewsapi.com/search-news?api-key=' + process.env.VITE_API_KEY + '&number=1')
+      .then(() => {
+        healthStatus.worldNewsApi = 'connected';
+        res.json(healthStatus);
+      })
+      .catch(error => {
+        healthStatus.worldNewsApi = 'error';
+        healthStatus.worldNewsApiError = error.message;
+        res.json(healthStatus);
+      });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 });
 
 const port = process.env.PORT || process.env.WEBSITES_PORT || 4040;
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log('Received shutdown signal');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
 server.listen(port, () => {
   console.log('Server is running on port:', port);
   console.log('Environment:', process.env.NODE_ENV);
   console.log('CORS origins:', corsOptions.origin);
+  checkMemoryUsage();
 });
