@@ -7,18 +7,13 @@ export async function getNews() {
     const response = await fetch(`${apiUrl}/api/news`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      mode: 'cors',
-      credentials: 'same-origin'
+        'Content-Type': 'application/json'
+      }
     });
     
     if (!response.ok) {
       console.error('Server response not OK:', response.status, response.statusText);
-      const text = await response.text();
-      console.error('Response text:', text);
-      throw new Error(`Failed to fetch news from server: ${response.status} ${response.statusText}`);
+      throw new Error('Failed to fetch news from server');
     }
     return await response.json();
   } catch (error) {

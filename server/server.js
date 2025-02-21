@@ -32,30 +32,16 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// CORS configuration
+// Basic CORS setup
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Logging middleware
 app.use((req, res, next) => {
-  const allowedOrigins = ['https://tv1.no', 'http://tv1.no', 'https://red-coast-0699c7710.4.azurestaticapps.net'];
-  const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
-  next();
-});
-
-// Debugging middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
   next();
 });
 
