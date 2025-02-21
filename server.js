@@ -268,7 +268,6 @@ const startServer = (retryCount = 0) => {
     .on('listening', () => {
       console.log('Server is running on port:', port);
       console.log('Environment:', process.env.NODE_ENV);
-      console.log('CORS origins:', corsOptions.origin);
       checkMemoryUsage();
     });
 };
