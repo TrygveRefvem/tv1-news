@@ -10,7 +10,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Prosess feilhåndtering
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  if (error.code === 'EADDRINUSE') {
+    console.log('Port er allerede i bruk. Prøver en annen port...');
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
+  } else {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -28,11 +35,16 @@ app.use(express.json({ limit: '1mb' }));
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://red-coast-0699c7710.4.azurestaticapps.net']
+    ? ['https://red-coast-0699c7710.4.azurestaticapps.net', 'https://tv1-news-backend.azurewebsites.net']
     : ['http://localhost:5173', 'http://127.0.0.1:5173'],
   credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 app.use(cors(corsOptions));
+
+// Pre-flight requests
+app.options('*', cors(corsOptions));
 
 // Rate limiting setup
 const requestQueue = [];
@@ -207,7 +219,28 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-const port = process.env.PORT || process.env.WEBSITES_PORT || 4040;
+const startServer = (retryCount = 0) => {
+  const basePort = process.env.PORT || process.env.WEBSITES_PORT || 4040;
+  const port = basePort + retryCount;
+
+  server.listen(port)
+    .on('error', (error) => {
+      if (error.code === 'EADDRINUSE' && retryCount < 10) {
+        console.log(`Port ${port} er opptatt, prøver port ${basePort + retryCount + 1}...`);
+        server.close();
+        startServer(retryCount + 1);
+      } else {
+        console.error('Server startup error:', error);
+        process.exit(1);
+      }
+    })
+    .on('listening', () => {
+      console.log('Server is running on port:', port);
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('CORS origins:', corsOptions.origin);
+      checkMemoryUsage();
+    });
+};
 
 // Graceful shutdown
 const shutdown = () => {
@@ -221,9 +254,5 @@ const shutdown = () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-server.listen(port, () => {
-  console.log('Server is running on port:', port);
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('CORS origins:', corsOptions.origin);
-  checkMemoryUsage();
-});
+// Start serveren
+startServer();
