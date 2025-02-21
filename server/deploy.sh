@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Sett arbeidskatalog
-cd /home/site/wwwroot
+cd /home/site/wwwroot/server
 
 # Sett NODE_ENV
 export NODE_ENV=production
@@ -19,6 +19,6 @@ fi
 # Opprett logs-mappe
 mkdir -p logs
 
-# Start serveren med PM2
+# Start serveren
 echo "Starting server..."
-npm start > logs/server.log 2>&1 
+node server.js > logs/server.log 2>&1 
