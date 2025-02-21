@@ -6,14 +6,22 @@ import { ClerkProvider } from '@clerk/clerk-react';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Publishable Key');
-}
+// Render appen med eller uten Clerk basert på om nøkkelen er tilgjengelig
+const root = createRoot(document.getElementById('root'));
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+if (PUBLISHABLE_KEY) {
+  root.render(
+    <StrictMode>
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <App />
+      </ClerkProvider>
+    </StrictMode>
+  );
+} else {
+  console.warn('Clerk publishable key not found, running without authentication');
+  root.render(
+    <StrictMode>
       <App />
-    </ClerkProvider>
-  </StrictMode>
-);
+    </StrictMode>
+  );
+}
