@@ -16,13 +16,25 @@ process.on('uncaughtException', (error) => {
       process.exit(1);
     }, 1000);
   } else {
-    process.exit(1);
+    console.error('Fatal error. Exiting...');
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
   }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+// Sjekk om nødvendige miljøvariabler er satt
+const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
 
 dotenv.config();
 const app = express();
@@ -41,8 +53,21 @@ app.use(cors({
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
+  });
   next();
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
+  });
 });
 
 // Rate limiting setup
@@ -81,15 +106,6 @@ async function processQueue() {
     isProcessing = false;
     setTimeout(processQueue, processInterval);
   }
-}
-
-// Sjekk om nødvendige miljøvariabler er satt
-const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
 }
 
 const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
@@ -185,36 +201,18 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
-// Forbedret helsesjekk endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now()
+  };
   try {
-    const healthStatus = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      queueSize: requestQueue.length,
-      environment: process.env.NODE_ENV,
-      version: process.version
-    };
-    
-    // Sjekk om vi kan koble til World News API
-    fetch('https://api.worldnewsapi.com/search-news?api-key=' + process.env.VITE_API_KEY + '&number=1')
-      .then(() => {
-        healthStatus.worldNewsApi = 'connected';
-        res.json(healthStatus);
-      })
-      .catch(error => {
-        healthStatus.worldNewsApi = 'error';
-        healthStatus.worldNewsApiError = error.message;
-        res.json(healthStatus);
-      });
+    res.send(healthcheck);
   } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    });
+    healthcheck.message = error;
+    res.status(503).send();
   }
 });
 
