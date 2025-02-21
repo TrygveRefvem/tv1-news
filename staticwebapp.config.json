@@ -11,10 +11,10 @@
     }
   ],
   "globalHeaders": {
-    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.azurestaticapps.net https://*.clerk.accounts.dev https://api.worldnewsapi.com https://generativelanguage.googleapis.com https://tv1-news-backend.azurewebsites.net",
+    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.azurestaticapps.net https://*.clerk.accounts.dev https://api.worldnewsapi.com https://generativelanguage.googleapis.com https://tv1-news-backend.azurewebsites.net https://tv1-news-api-anbegpdkhmezczc0.northeurope-01.azurewebsites.net",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Origin",
     "cache-control": "no-cache"
   },
   "mimeTypes": {
