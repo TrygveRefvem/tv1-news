@@ -2,7 +2,6 @@
 import http from 'http';
 import path from 'path';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -27,16 +26,15 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Sjekk om nødvendige miljøvariabler er satt
-const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+// Sjekk miljøvariabler
+console.log('Environment variables:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  WEBSITES_PORT: process.env.WEBSITES_PORT,
+  VITE_API_KEY: process.env.VITE_API_KEY,
+  VITE_GOOGLE_GENERATIVE_AI_KEY: process.env.VITE_GOOGLE_GENERATIVE_AI_KEY
+});
 
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
-}
-
-dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
@@ -240,7 +238,12 @@ app.get('/api/health', (req, res) => {
   const healthcheck = {
     uptime: process.uptime(),
     message: 'OK',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      WEBSITES_PORT: process.env.WEBSITES_PORT
+    }
   };
   try {
     res.send(healthcheck);
