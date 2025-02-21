@@ -51,6 +51,7 @@ app.use((req, res, next) => {
     'https://tv1.no',
     'http://tv1.no',
     'https://red-coast-0699c7710.4.azurestaticapps.net',
+    'https://tv1-news-api-anbegpdkhmezczc0.northeurope-01.azurewebsites.net',
     'http://localhost:5173'
   ];
 
@@ -63,7 +64,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   
   // Tillatte headers
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin');
   
   // Allow credentials
   res.setHeader('Access-Control-Allow-Credentials', 'true');
