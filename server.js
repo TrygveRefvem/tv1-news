@@ -1,6 +1,5 @@
 /* eslint-disable no-undef */
 import http from 'http';
-import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -10,7 +9,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Prosess feilhåndtering
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  // Logg stack trace
   console.error('Stack:', error.stack);
   process.exit(1);
 });
@@ -18,20 +16,34 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise);
   console.error('Reason:', reason);
-  // Logg stack trace hvis tilgjengelig
   if (reason instanceof Error) {
     console.error('Stack:', reason.stack);
   }
 });
 
-// Konfigurer dotenv først
+// Konfigurer miljøvariabler
 dotenv.config();
 
-// Logg miljøvariabler (uten sensitive verdier)
-console.log('Environment variables loaded:', {
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  WEBSITES_PORT: process.env.WEBSITES_PORT
+// Sett standardverdier for miljøvariabler
+const PORT = process.env.PORT || process.env.WEBSITES_PORT || 4040;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const API_KEY = process.env.VITE_API_KEY || process.env.API_KEY;
+const GEMINI_KEY = process.env.VITE_GOOGLE_GENERATIVE_AI_KEY || process.env.GOOGLE_GENERATIVE_AI_KEY;
+
+// Valider nødvendige miljøvariabler
+if (!API_KEY || !GEMINI_KEY) {
+  console.error('Missing required environment variables:');
+  if (!API_KEY) console.error('- API_KEY or VITE_API_KEY is required');
+  if (!GEMINI_KEY) console.error('- GOOGLE_GENERATIVE_AI_KEY or VITE_GOOGLE_GENERATIVE_AI_KEY is required');
+  process.exit(1);
+}
+
+// Logg miljøkonfigurasjon
+console.log('Environment Configuration:', {
+  NODE_ENV,
+  PORT,
+  API_KEY: API_KEY ? '***' : undefined,
+  GEMINI_KEY: GEMINI_KEY ? '***' : undefined
 });
 
 const app = express();
@@ -41,7 +53,7 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// CORS middleware med bedre feilhåndtering
+// CORS middleware
 app.use((req, res, next) => {
   const allowedOrigins = [
     'https://tv1.no',
@@ -75,7 +87,7 @@ app.use((req, res, next) => {
   }
 });
 
-// Detaljert logging middleware
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const requestId = Math.random().toString(36).substring(7);
@@ -83,7 +95,6 @@ app.use((req, res, next) => {
   console.log(`[${requestId}] Incoming ${req.method} ${req.url}`);
   console.log(`[${requestId}] Headers:`, req.headers);
   
-  // Logg body for ikke-GET requests
   if (req.method !== 'GET') {
     console.log(`[${requestId}] Body:`, req.body);
   }
@@ -96,7 +107,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Forbedret error handling middleware
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error details:', {
     message: err.message,
@@ -106,13 +117,13 @@ app.use((err, req, res, next) => {
   
   res.status(500).json({
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
+    message: NODE_ENV === 'development' ? err.message : 'An error occurred',
     requestId: req.requestId
   });
 });
 
 // Initialiser Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 // Rate limiting og køhåndtering
@@ -134,7 +145,7 @@ const checkMemoryUsage = () => {
 
 setInterval(checkMemoryUsage, 30000);
 
-// Forbedret køprosessering
+// Køprosessering
 async function processQueue() {
   if (isProcessing || requestQueue.length === 0) return;
   
@@ -173,7 +184,7 @@ async function queueRequest(prompt) {
   });
 }
 
-// API endpoints med forbedret feilhåndtering
+// API endpoints
 app.post('/api/mood', async (req, res) => {
   const requestId = Math.random().toString(36).substring(7);
   console.log(`[${requestId}] Received mood analysis request`);
@@ -229,9 +240,8 @@ app.get('/api/news', async (req, res) => {
   console.log(`[${requestId}] Fetching news`);
   
   try {
-    const apiKey = process.env.VITE_API_KEY;
     const params = {
-      'api-key': apiKey,
+      'api-key': API_KEY,
       text: 'Ukraine Trump NATO geopolitics war',
       language: 'en',
       'earliest-publish-date': new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -265,7 +275,7 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
-// Forbedret health check endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   const requestId = Math.random().toString(36).substring(7);
   console.log(`[${requestId}] Health check request`);
@@ -276,6 +286,12 @@ app.get('/api/health', (req, res) => {
       message: 'OK',
       timestamp: Date.now(),
       memory: process.memoryUsage(),
+      environment: {
+        NODE_ENV,
+        PORT,
+        hasApiKey: !!API_KEY,
+        hasGeminiKey: !!GEMINI_KEY
+      },
       requestId
     };
     
@@ -291,17 +307,16 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Server startup med forbedret feilhåndtering
+// Server startup
 const startServer = (retryCount = 0) => {
-  const basePort = process.env.PORT || process.env.WEBSITES_PORT || 4040;
-  const port = basePort + retryCount;
+  const port = PORT + retryCount;
 
   console.log(`Attempting to start server on port ${port}`);
 
   server.listen(port)
     .on('error', (error) => {
       if (error.code === 'EADDRINUSE' && retryCount < 10) {
-        console.log(`Port ${port} is in use, trying port ${basePort + retryCount + 1}...`);
+        console.log(`Port ${port} is in use, trying port ${PORT + retryCount + 1}...`);
         server.close();
         startServer(retryCount + 1);
       } else {
@@ -311,7 +326,7 @@ const startServer = (retryCount = 0) => {
     })
     .on('listening', () => {
       console.log(`Server is running on port: ${port}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Environment: ${NODE_ENV}`);
       console.log('Server startup complete');
       checkMemoryUsage();
     });
