@@ -2,6 +2,7 @@
 import http from 'http';
 import path from 'path';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -26,15 +27,16 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Sjekk miljøvariabler
-console.log('Environment variables:', {
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  WEBSITES_PORT: process.env.WEBSITES_PORT,
-  VITE_API_KEY: process.env.VITE_API_KEY,
-  VITE_GOOGLE_GENERATIVE_AI_KEY: process.env.VITE_GOOGLE_GENERATIVE_AI_KEY
-});
+// Sjekk om nødvendige miljøvariabler er satt
+const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
@@ -238,12 +240,7 @@ app.get('/api/health', (req, res) => {
   const healthcheck = {
     uptime: process.uptime(),
     message: 'OK',
-    timestamp: Date.now(),
-    env: {
-      NODE_ENV: process.env.NODE_ENV,
-      PORT: process.env.PORT,
-      WEBSITES_PORT: process.env.WEBSITES_PORT
-    }
+    timestamp: Date.now()
   };
   try {
     res.send(healthcheck);
@@ -271,6 +268,7 @@ const startServer = (retryCount = 0) => {
     .on('listening', () => {
       console.log('Server is running on port:', port);
       console.log('Environment:', process.env.NODE_ENV);
+      console.log('CORS origins:', corsOptions.origin);
       checkMemoryUsage();
     });
 };
@@ -288,4 +286,4 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 // Start serveren
-startServer(); 
+startServer();
