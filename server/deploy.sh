@@ -3,9 +3,9 @@
 # Sett arbeidskatalog
 cd /home/site/wwwroot
 
-# Kopier server.js og package.json til rot-mappen
+# Kopier server-filer til rot-mappen
 cp server/server.js .
-cp server/package.json .
+cp server/.env* . 2>/dev/null || true
 
 # Sett NODE_ENV
 export NODE_ENV=production
