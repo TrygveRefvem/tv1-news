@@ -15,31 +15,14 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
-if (process.env.NODE_ENV === 'production') {
-  const corsOptions = {
-    origin: [
-      'https://tv1.no',
-      'https://*.tv1.no'
-    ],
-    credentials: true
-  };
-  app.use(cors(corsOptions));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve('dist', 'index.html'));
-  });
-} else {
-  const corsOptions = {
-    origin: [
-      'http://127.0.0.1:4040',
-      'http://localhost:4040',
-      'http://127.0.0.1:5173',
-      'http://localhost:5173',
-    ],
-    credentials: true,
-  };
-  app.use(cors(corsOptions));
-}
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://red-coast-0699c7710.4.azurestaticapps.net']
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // Rate limiting setup
 const requestQueue = [];
@@ -153,7 +136,14 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const port = process.env.PORT || 4040;
 server.listen(port, () => {
   console.log('Server is running on port:', port);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('CORS origins:', corsOptions.origin);
 });

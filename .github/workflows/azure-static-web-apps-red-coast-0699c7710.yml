@@ -1,0 +1,75 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          lfs: false
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Create env file
+        run: |
+          echo "VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" > .env.production
+          echo "VITE_WORLD_NEWS_API_KEY=${{ secrets.VITE_WORLD_NEWS_API_KEY }}" >> .env.production
+          echo "VITE_API_KEY=${{ secrets.VITE_API_KEY }}" >> .env.production
+          echo "VITE_GOOGLE_GENERATIVE_AI_KEY=${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}" >> .env.production
+          echo "VITE_API_URL=/api" >> .env.production
+        
+      - name: Build
+        run: npm run build
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_WORLD_NEWS_API_KEY: ${{ secrets.VITE_WORLD_NEWS_API_KEY }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_GOOGLE_GENERATIVE_AI_KEY: ${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}
+          VITE_API_URL: /api
+          
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_COAST_0699C7710 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/"
+          api_location: "server"
+          output_location: "dist"
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_WORLD_NEWS_API_KEY: ${{ secrets.VITE_WORLD_NEWS_API_KEY }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_GOOGLE_GENERATIVE_AI_KEY: ${{ secrets.VITE_GOOGLE_GENERATIVE_AI_KEY }}
+          VITE_API_URL: /api
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_COAST_0699C7710 }}
+          action: "close"
