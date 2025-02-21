@@ -141,7 +141,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-const port = process.env.PORT || 4040;
+const port = process.env.PORT || process.env.WEBSITES_PORT || 4040;
 server.listen(port, () => {
   console.log('Server is running on port:', port);
   console.log('Environment:', process.env.NODE_ENV);
