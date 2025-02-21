@@ -10,33 +10,30 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Prosess feilhåndtering
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  if (error.code === 'EADDRINUSE') {
-    console.log('Port er allerede i bruk. Prøver en annen port...');
-    setTimeout(() => {
-      process.exit(1);
-    }, 1000);
-  } else {
-    console.error('Fatal error. Exiting...');
-    setTimeout(() => {
-      process.exit(1);
-    }, 1000);
-  }
+  // Logg stack trace
+  console.error('Stack:', error.stack);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  // Logg stack trace hvis tilgjengelig
+  if (reason instanceof Error) {
+    console.error('Stack:', reason.stack);
+  }
 });
 
-// Sjekk om nødvendige miljøvariabler er satt
-const requiredEnvVars = ['VITE_GOOGLE_GENERATIVE_AI_KEY', 'VITE_API_KEY'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  process.exit(1);
-}
-
+// Konfigurer dotenv først
 dotenv.config();
+
+// Logg miljøvariabler (uten sensitive verdier)
+console.log('Environment variables loaded:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  WEBSITES_PORT: process.env.WEBSITES_PORT
+});
+
 const app = express();
 const server = http.createServer(app);
 
@@ -44,9 +41,8 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// CORS middleware
+// CORS middleware med bedre feilhåndtering
 app.use((req, res, next) => {
-  // Tillatte origins
   const allowedOrigins = [
     'https://tv1.no',
     'http://tv1.no',
@@ -55,65 +51,80 @@ app.use((req, res, next) => {
     'http://localhost:5173'
   ];
 
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  try {
+    const origin = req.headers.origin;
+    console.log('Request origin:', origin);
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    
+    next();
+  } catch (error) {
+    console.error('CORS error:', error);
+    next(error);
   }
-
-  // Tillatte HTTP-metoder
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  
-  // Tillatte headers
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin');
-  
-  // Allow credentials
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  // Cache CORS preflight
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 timer
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
-  next();
 });
 
-// Logging middleware
+// Detaljert logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
-  console.log(`Incoming request: ${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
+  const requestId = Math.random().toString(36).substring(7);
+  
+  console.log(`[${requestId}] Incoming ${req.method} ${req.url}`);
+  console.log(`[${requestId}] Headers:`, req.headers);
+  
+  // Logg body for ikke-GET requests
+  if (req.method !== 'GET') {
+    console.log(`[${requestId}] Body:`, req.body);
+  }
   
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`${new Date().toISOString()} ${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
-    console.log('Response headers:', res.getHeaders());
+    console.log(`[${requestId}] Completed ${req.method} ${req.url} ${res.statusCode} in ${duration}ms`);
   });
   
   next();
 });
 
-// Error handling middleware
+// Forbedret error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
+  console.error('Error details:', {
+    message: err.message,
+    stack: err.stack,
+    code: err.code
+  });
+  
+  res.status(500).json({
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
+    requestId: req.requestId
   });
 });
 
-// Rate limiting setup
+// Initialiser Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+// Rate limiting og køhåndtering
 const requestQueue = [];
-const processInterval = 1000; // 1 second between requests
+const processInterval = 1000;
 let isProcessing = false;
 const MAX_QUEUE_SIZE = 100;
 
 // Minnebruk overvåkning
 const checkMemoryUsage = () => {
   const used = process.memoryUsage();
-  console.log({
+  console.log('Memory usage:', {
     rss: `${Math.round(used.rss / 1024 / 1024)}MB`,
     heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)}MB`,
     heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)}MB`,
@@ -123,18 +134,22 @@ const checkMemoryUsage = () => {
 
 setInterval(checkMemoryUsage, 30000);
 
+// Forbedret køprosessering
 async function processQueue() {
   if (isProcessing || requestQueue.length === 0) return;
   
   isProcessing = true;
-  const { resolve, reject, prompt } = requestQueue.shift();
+  const { resolve, reject, prompt, requestId } = requestQueue.shift();
+  
+  console.log(`[${requestId}] Processing queue item. Queue length: ${requestQueue.length}`);
   
   try {
     const response = await model.generateContent(prompt);
     const result = await response.response.text();
+    console.log(`[${requestId}] Successfully processed queue item`);
     resolve(result);
   } catch (error) {
-    console.error('Error in processQueue:', error);
+    console.error(`[${requestId}] Error processing queue item:`, error);
     reject(error);
   } finally {
     isProcessing = false;
@@ -142,24 +157,30 @@ async function processQueue() {
   }
 }
 
-const genAI = new GoogleGenerativeAI(process.env.VITE_GOOGLE_GENERATIVE_AI_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
 async function queueRequest(prompt) {
+  const requestId = Math.random().toString(36).substring(7);
+  
   if (requestQueue.length >= MAX_QUEUE_SIZE) {
+    console.warn(`[${requestId}] Queue is full. Size: ${requestQueue.length}`);
     throw new Error('Request queue is full');
   }
   
+  console.log(`[${requestId}] Adding request to queue. Current size: ${requestQueue.length}`);
+  
   return new Promise((resolve, reject) => {
-    requestQueue.push({ resolve, reject, prompt });
+    requestQueue.push({ resolve, reject, prompt, requestId });
     processQueue();
   });
 }
 
+// API endpoints med forbedret feilhåndtering
 app.post('/api/mood', async (req, res) => {
-  const { titles, title, description } = req.body;
-
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[${requestId}] Received mood analysis request`);
+  
   try {
+    const { titles, title, description } = req.body;
+
     if (titles) {
       const prompt = `For each of the following news headlines, analyze the political stance and return a score from -10 to +10, where:
         -10 indicates strongly pro-Russia/pro-Trump stance
@@ -170,6 +191,7 @@ app.post('/api/mood', async (req, res) => {
 
       const result = await queueRequest(prompt);
       const scores = JSON.parse(result);
+      console.log(`[${requestId}] Successfully processed titles`);
       return res.json({ scores });
     }
 
@@ -190,36 +212,43 @@ app.post('/api/mood', async (req, res) => {
       const result = await queueRequest(prompt);
       const answer = result.replace(/```json|```/g, '').trim();
       const updatedArticle = JSON.parse(answer);
+      console.log(`[${requestId}] Successfully processed article`);
       return res.json(updatedArticle);
     }
 
+    console.warn(`[${requestId}] Invalid request payload`);
     return res.status(400).json({ error: 'Invalid request payload' });
   } catch (error) {
-    console.error('Error in /api/mood:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error(`[${requestId}] Error in /api/mood:`, error);
+    return res.status(500).json({ error: 'Internal Server Error', requestId });
   }
 });
 
 app.get('/api/news', async (req, res) => {
-  const apiKey = process.env.VITE_API_KEY;
-  const params = {
-    'api-key': apiKey,
-    text: 'Ukraine Trump NATO geopolitics war',
-    language: 'en',
-    'earliest-publish-date': new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    number: 20,
-    sort: 'publish-time',
-    'sort-direction': 'DESC'
-  };
-
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[${requestId}] Fetching news`);
+  
   try {
+    const apiKey = process.env.VITE_API_KEY;
+    const params = {
+      'api-key': apiKey,
+      text: 'Ukraine Trump NATO geopolitics war',
+      language: 'en',
+      'earliest-publish-date': new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      number: 20,
+      sort: 'publish-time',
+      'sort-direction': 'DESC'
+    };
+
     const urlParams = new URLSearchParams(params).toString();
+    console.log(`[${requestId}] Fetching from World News API`);
+    
     const response = await fetch(`https://api.worldnewsapi.com/search-news?${urlParams}`);
 
     if (!response.ok) {
       const errorDetails = await response.json();
-      console.error('Error details:', errorDetails);
-      return res.status(500).json({ error: 'Failed to fetch news' });
+      console.error(`[${requestId}] World News API error:`, errorDetails);
+      return res.status(500).json({ error: 'Failed to fetch news', requestId });
     }
 
     const data = await response.json();
@@ -228,47 +257,62 @@ app.get('/api/news', async (req, res) => {
       id: `${index}-${article.title?.slice(0, 10)}`,
     }));
 
+    console.log(`[${requestId}] Successfully fetched ${newsWithIds.length} articles`);
     return res.json(newsWithIds);
   } catch (error) {
-    console.error('Error in /api/news:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error(`[${requestId}] Error in /api/news:`, error);
+    return res.status(500).json({ error: 'Internal Server Error', requestId });
   }
 });
 
-// Health check endpoint
+// Forbedret health check endpoint
 app.get('/api/health', (req, res) => {
-  const healthcheck = {
-    uptime: process.uptime(),
-    message: 'OK',
-    timestamp: Date.now()
-  };
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[${requestId}] Health check request`);
+  
   try {
-    res.send(healthcheck);
+    const healthcheck = {
+      uptime: process.uptime(),
+      message: 'OK',
+      timestamp: Date.now(),
+      memory: process.memoryUsage(),
+      requestId
+    };
+    
+    console.log(`[${requestId}] Health check success`);
+    res.json(healthcheck);
   } catch (error) {
-    healthcheck.message = error;
-    res.status(503).send();
+    console.error(`[${requestId}] Health check failed:`, error);
+    res.status(503).json({
+      error: 'Health check failed',
+      message: error.message,
+      requestId
+    });
   }
 });
 
+// Server startup med forbedret feilhåndtering
 const startServer = (retryCount = 0) => {
   const basePort = process.env.PORT || process.env.WEBSITES_PORT || 4040;
   const port = basePort + retryCount;
 
+  console.log(`Attempting to start server on port ${port}`);
+
   server.listen(port)
     .on('error', (error) => {
       if (error.code === 'EADDRINUSE' && retryCount < 10) {
-        console.log(`Port ${port} er opptatt, prøver port ${basePort + retryCount + 1}...`);
+        console.log(`Port ${port} is in use, trying port ${basePort + retryCount + 1}...`);
         server.close();
         startServer(retryCount + 1);
       } else {
-        console.error('Server startup error:', error);
+        console.error('Fatal server startup error:', error);
         process.exit(1);
       }
     })
     .on('listening', () => {
-      console.log('Server is running on port:', port);
-      console.log('Environment:', process.env.NODE_ENV);
-      console.log('CORS origins:', corsOptions.origin);
+      console.log(`Server is running on port: ${port}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log('Server startup complete');
       checkMemoryUsage();
     });
 };
