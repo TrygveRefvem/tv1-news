@@ -44,20 +44,53 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// Basic CORS setup
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// CORS middleware
+app.use((req, res, next) => {
+  // Tillatte origins
+  const allowedOrigins = [
+    'https://tv1.no',
+    'http://tv1.no',
+    'https://red-coast-0699c7710.4.azurestaticapps.net',
+    'http://localhost:5173'
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  // Tillatte HTTP-metoder
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  
+  // Tillatte headers
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Allow credentials
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Cache CORS preflight
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 timer
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
 
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  
   res.on('finish', () => {
     const duration = Date.now() - start;
     console.log(`${new Date().toISOString()} ${req.method} ${req.url} ${res.statusCode} ${duration}ms`);
+    console.log('Response headers:', res.getHeaders());
   });
+  
   next();
 });
 
