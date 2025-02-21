@@ -1,14 +1,9 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,gif}", "/css/*", "/js/*", "/api/*"]
+    "exclude": ["/images/*.{png,jpg,gif}", "/css/*", "/js/*"]
   },
   "routes": [
-    {
-      "route": "/api/*",
-      "methods": ["GET", "POST"],
-      "rewrite": "/api/proxy"
-    },
     {
       "route": "/*",
       "serve": "/index.html",
@@ -19,11 +14,11 @@
     "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.azurestaticapps.net https://*.clerk.accounts.dev https://api.worldnewsapi.com https://generativelanguage.googleapis.com https://tv1-news-backend.azurewebsites.net",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-    "cache-control": "no-cache",
-    "X-Content-Type-Options": "nosniff"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "cache-control": "no-cache"
   },
   "mimeTypes": {
-    ".json": "text/json"
+    ".json": "text/json",
+    ".ttf": "font/ttf"
   }
 }
